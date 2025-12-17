@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL // SYSTEM FORENSICS</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --panel: #0a0a0a;
+            --border: #333;
+            --accent: #00ff41;
+            --text: #ddd;
+            --dim: #666;
+            --alert: #ff3333;
+            --font: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            margin: 0;
+            padding: 10px;
+            font-size: 13px;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); }
+
+        h1, h2, h3 { color: var(--accent); margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+        h1 { border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.4rem; }
+        h2 { font-size: 1rem; margin-bottom: 10px; border-left: 3px solid var(--accent); padding-left: 8px; }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 15px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            padding: 15px;
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.2;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        td { padding: 4px 0; border-bottom: 1px solid #1a1a1a; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        
+        .key { color: var(--dim); width: 45%; }
+        .val { color: var(--accent); text-align: right; word-break: break-all; }
+        .val.warn { color: var(--alert); }
+        .val.neutral { color: #fff; }
+
+        .hash-box {
+            background: #000;
+            border: 1px dashed var(--dim);
+            color: var(--alert);
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin: 10px 0;
+            user-select: all;
+        }
+
+        .raw-data {
+            font-size: 10px;
+            color: var(--dim);
+            max-height: 100px;
+            overflow-y: auto;
+            background: #050505;
+            padding: 5px;
+            border: 1px solid #222;
+        }
+
+        .btn {
+            background: var(--border);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 10px;
+            width: 100%;
+            cursor: pointer;
+            font-family: var(--font);
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .btn:hover { background: var(--accent); color: #000; }
+
+        /* Animation for scanning effect */
+        @keyframes scan {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+        .scanning {
+            color: var(--accent);
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>System Forensics & Fingerprint Report_v9.0</h1>
+    <div style="display:flex; justify-content:space-between; color: var(--dim);">
+        <span id="timestamp">INITIALIZING...</span>
+        <span>SECURITY LEVEL: <span style="color:var(--alert)">ZERO</span></span>
+    </div>
+</header>
+
+<div class="grid-container">
+
+    <!-- 1. NETWORK INTELLIGENCE -->
+    <div class="panel">
+        <h2>[0x01] Network Intelligence</h2>
+        <table>
+            <tr><td class="key">Public IP Address</td><td class="val" id="ip-public"><span class="scanning">SCANNING</span></td></tr>
+            <tr><td class="key">Hostname / Reverse DNS</td><td class="val" id="ip-host">-</td></tr>
+            <tr><td class="key">ISP / Organization</td><td class="val" id="ip-isp">-</td></tr>
+            <tr><td class="key">ASN</td><td class="val" id="ip-asn">-</td></tr>
+            <tr><td class="key">Geo Coordinates</td><td class="val" id="ip-geo">-</td></tr>
+            <tr><td class="key">Timezone (IP-based)</td><td class="val" id="ip-tz">-</td></tr>
+            <tr><td class="key">WebRTC Local IP</td><td class="val" id="rtc-local">Checking...</td></tr>
+            <tr><td class="key">WebRTC Candidate Type</td><td class="val" id="rtc-type">-</td></tr>
+            <tr><td class="key">Tor / Proxy Detected</td><td class="val" id="net-proxy">Analysis Pending</td></tr>
+        </table>
+        <div class="raw-data" id="net-headers">Detection relies on client-side JS & public IP APIs.</div>
+    </div>
+
+    <!-- 2. CANVAS & GRAPHICS -->
+    <div class="panel">
+        <h2>[0x02] Canvas Fingerprint</h2>
+        <div class="hash-box" id="fp-canvas">CALCULATING...</div>
+        <table>
+            <tr><td class="key">Winding Rule</td><td class="val">Non-Zero / Even-Odd</td></tr>
+            <tr><td class="key">Text Anti-aliasing</td><td class="val">Subpixel / Grayscale</td></tr>
+            <tr><td class="key">Emoji Support</td><td class="val">Unicode 13.0+</td></tr>
+            <tr><td class="key">MIME Support</td><td class="val" id="canvas-mime">image/png</td></tr>
+        </table>
+        <div style="border:1px solid #333; height:40px; overflow:hidden; opacity:0.7" id="canvas-dump"></div>
+    </div>
+
+    <!-- 3. WEBGL & GPU ARCHITECTURE -->
+    <div class="panel">
+        <h2>[0x03] WebGL & GPU Unit</h2>
+        <div class="hash-box" id="fp-webgl">CALCULATING...</div>
+        <table>
+            <tr><td class="key">GPU Vendor</td><td class="val" id="gl-vendor">-</td></tr>
+            <tr><td class="key">GPU Renderer</td><td class="val" id="gl-renderer">-</td></tr>
+            <tr><td class="key">Unmasked Vendor</td><td class="val warn" id="gl-unmasked-v">-</td></tr>
+            <tr><td class="key">Unmasked Renderer</td><td class="val warn" id="gl-unmasked-r">-</td></tr>
+            <tr><td class="key">Shading Language</td><td class="val" id="gl-shading">-</td></tr>
+            <tr><td class="key">Max Texture Size</td><td class="val" id="gl-texture">-</td></tr>
+            <tr><td class="key">Anisotropy</td><td class="val" id="gl-aniso">-</td></tr>
+            <tr><td class="key">Aliased Point Range</td><td class="val" id="gl-point">-</td></tr>
+        </table>
+        <div class="raw-data" id="gl-ext">Extensions: Scanning...</div>
+    </div>
+
+    <!-- 4. AUDIO STACK -->
+    <div class="panel">
+        <h2>[0x04] AudioContext Fingerprint</h2>
+        <div class="hash-box" id="fp-audio">CALCULATING...</div>
+        <table>
+            <tr><td class="key">Base Latency</td><td class="val" id="au-latency">-</td></tr>
+            <tr><td class="key">Output Latency</td><td class="val" id="au-output">-</td></tr>
+            <tr><td class="key">Sample Rate</td><td class="val" id="au-sample">-</td></tr>
+            <tr><td class="key">State</td><td class="val" id="au-state">-</td></tr>
+            <tr><td class="key">Max Channels</td><td class="val" id="au-channel">-</td></tr>
+            <tr><td class="key">Dynamics Compressor</td><td class="val">Supported</td></tr>
+        </table>
+    </div>
+
+    <!-- 5. CLIENT RECTS & DOM -->
+    <div class="panel">
+        <h2>[0x05] ClientRects Fingerprint</h2>
+        <div class="hash-box" id="fp-rects">CALCULATING...</div>
+        <p style="font-size:10px; color:var(--dim)">
+            Measures sub-pixel render differences of HTML elements after CSS transformations. Highly specific to OS/Font rendering engines.
+        </p>
+        <div class="raw-data" id="rects-data"></div>
+    </div>
+
+    <!-- 6. HARDWARE & CONCURRENCY -->
+    <div class="panel">
+        <h2>[0x06] Hardware Profiling</h2>
+        <table>
+            <tr><td class="key">CPU Cores (Logical)</td><td class="val" id="hw-cores">-</td></tr>
+            <tr><td class="key">Device Memory (RAM)</td><td class="val" id="hw-ram">-</td></tr>
+            <tr><td class="key">Platform / OS</td><td class="val" id="hw-platform">-</td></tr>
+            <tr><td class="key">Screen Resolution</td><td class="val" id="hw-res">-</td></tr>
+            <tr><td class="key">Available Screen</td><td class="val" id="hw-avail">-</td></tr>
+            <tr><td class="key">Color Depth</td><td class="val" id="hw-depth">-</td></tr>
+            <tr><td class="key">Color Gamut (P3)</td><td class="val" id="hw-gamut">-</td></tr>
+            <tr><td class="key">Touch Points</td><td class="val" id="hw-touch">-</td></tr>
+            <tr><td class="key">Battery API</td><td class="val" id="hw-batt">-</td></tr>
+        </table>
+    </div>
+
+    <!-- 7. BROWSER ENVIRONMENT -->
+    <div class="panel">
+        <h2>[0x07] Browser Environment</h2>
+        <table>
+            <tr><td class="key">User Agent</td><td class="val raw-data" style="max-height:40px" id="env-ua">-</td></tr>
+            <tr><td class="key">App Name</td><td class="val" id="env-app">-</td></tr>
+            <tr><td class="key">Product Sub</td><td class="val" id="env-prod">-</td></tr>
+            <tr><td class="key">Vendor</td><td class="val" id="env-vendor">-</td></tr>
+            <tr><td class="key">Navigator Properties</td><td class="val" id="env-props">-</td></tr>
+            <tr><td class="key">Languages</td><td class="val" id="env-lang">-</td></tr>
+            <tr><td class="key">Do Not Track</td><td class="val" id="env-dnt">-</td></tr>
+            <tr><td class="key">Cookies Enabled</td><td class="val" id="env-cook">-</td></tr>
+            <tr><td class="key">Headless / Bot</td><td class="val" id="env-bot">Checking...</td></tr>
+        </table>
+    </div>
+
+    <!-- 8. MEDIA DEVICES -->
+    <div class="panel">
+        <h2>[0x08] Media Devices & Fonts</h2>
+        <table>
+            <tr><td class="key">Microphones</td><td class="val" id="med-mic">Pending Auth</td></tr>
+            <tr><td class="key">Cameras</td><td class="val" id="med-cam">Pending Auth</td></tr>
+            <tr><td class="key">Speakers</td><td class="val" id="med-spk">Pending Auth</td></tr>
+        </table>
+        <button class="btn" onclick="enumerateMedia()">Enumerate Devices (Auth Req)</button>
+        <hr style="border:0; border-top:1px solid var(--border); margin:10px 0;">
+        <div class="raw-data" id="font-detect">Scanning Installed Fonts...</div>
+    </div>
+    
+</div>
+
+<script>
+/* 
+   ---------------------------------------------------
+   CORE HASHING & UTILITIES
+   ---------------------------------------------------
+*/
+const getId = (id) => document.getElementById(id);
+const setText = (id, txt) => { const el = getId(id); if(el) el.innerText = txt; };
+const setHtml = (id, html) => { const el = getId(id); if(el) el.innerHTML = html; };
+
+// MurmurHash3 (32-bit) implementation for generating unique IDs
+function xmur3(str) {
+    for(var i = 0, h = 1779033703 ^ str.length; i < str.length; i++) {
+        h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+        h = h << 13 | h >>> 19;
+    } return function() {
+        h = Math.imul(h ^ (h >>> 16), 2246822507);
+        h = Math.imul(h ^ (h >>> 13), 3266489909);
+        return (h ^= h >>> 16) >>> 0;
+    }
+}
+
+function getFingerprintHash(str) {
+    let hash = 0;
+    if (str.length === 0) return "00000000";
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
+}
+
+/* 
+   ---------------------------------------------------
+   MODULE 1: NETWORK & WEBRTC
+   ---------------------------------------------------
+*/
+async function scanNetwork() {
+    // 1. External IP via public API
+    try {
+        const req = await fetch('https://ipapi.co/json/');
+        const data = await req.json();
+        setText('ip-public', data.ip);
+        setText('ip-host', data.hostname || "N/A");
+        setText('ip-isp', data.org || data.isp);
+        setText('ip-asn', data.asn);
+        setText('ip-geo', `${data.latitude}, ${data.longitude} (${data.city}, ${data.country_code})`);
+        setText('ip-tz', data.timezone);
+        
+        // Simple proxy detection heuristic
+        if(data.org.toLowerCase().includes("vpn") || data.org.toLowerCase().includes("hosting")) {
+            setHtml('net-proxy', '<span style="color:red">HIGH PROBABILITY</span>');
+        } else {
+            setHtml('net-proxy', '<span style="color:lime">Low Probability</span>');
+        }
+    } catch(e) {
+        setText('ip-public', 'ADBLOCK/BLOCKED');
+    }
+
+    // 2. WebRTC Leak Test
+    const pc = new RTCPeerConnection({iceServers: [{urls: "stun:stun.l.google.com:19302"}]});
+    pc.createDataChannel("");
+    pc.createOffer().then(sdp => pc.setLocalDescription(sdp));
+    pc.onicecandidate = (ice) => {
+        if(ice && ice.candidate && ice.candidate.candidate) {
+            const line = ice.candidate.candidate;
+            const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/;
+            const match = line.match(ipRegex);
+            
+            setText('rtc-type', ice.candidate.type);
+            
+            if(match) {
+                if(line.includes('.local') || line.includes('mdns')) {
+                     setHtml('rtc-local', '<span style="color:orange">Obfuscated (mDNS)</span>');
+                } else if (match[1].length > 6) {
+                     setHtml('rtc-local', `<span style="color:red">${match[1]} (LEAKED)</span>`);
+                }
+            }
+        }
+    };
+}
+
+/* 
+   ---------------------------------------------------
+   MODULE 2: CANVAS FINGERPRINTING
+   ---------------------------------------------------
+*/
+function scanCanvas() {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 240; 
+        canvas.height = 60;
+        
+        // Geometry
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "#f60";
+        ctx.fillRect(125, 1, 62, 20);
+        
+        // Text/Font Rendering
+        ctx.fillStyle = "#069";
+        ctx.font = "11pt no-real-font-123"; // Fallback font
+        ctx.fillText("Cwm fjordbank glyphs vext quiz", 2, 15);
+        ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+        ctx.font = "18pt Arial";
+        ctx.fillText("😃", 4, 45); // Emoji
+        
+        // Blending
+        ctx.globalCompositeOperation = "multiply";
+        ctx.fillStyle = "rgb(255,0,255)";
+        ctx.beginPath(); ctx.arc(50, 50, 50, 0, Math.PI*2, true); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgb(0,255,255)";
+        ctx.beginPath(); ctx.arc(100, 50, 50, 0, Math.PI*2, true); ctx.closePath(); ctx.fill();
+
+        const b64 = canvas.toDataURL();
+        const hash = getFingerprintHash(b64);
+        
+        setText('fp-canvas', hash);
+        
+        // Visual confirmation
+        canvas.style.width = "100%";
+        getId('canvas-dump').appendChild(canvas);
+        
+    } catch(e) { setText('fp-canvas', 'ERROR'); }
+}
+
+/* 
+   ---------------------------------------------------
+   MODULE 3: WEBGL FINGERPRINTING
+   ---------------------------------------------------
+*/
+function scanWebGL() {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if(!gl) { setText('fp-webgl', 'NOT SUPPORTED'); return; }
+
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    const vendor = gl.getParameter(gl.VENDOR);
+    const renderer = gl.getParameter(gl.RENDERER);
+    const uVendor = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : 'Masked';
+    const uRenderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : 'Masked';
+
+    setText('gl-vendor', vendor);
+    setText('gl-renderer', renderer);
+    setText('gl-unmasked-v', uVendor);
+    setText('gl-unmasked-r', uRenderer);
+    setText('gl-shading', gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
+    setText('gl-texture', gl.getParameter(gl.MAX_TEXTURE_SIZE));
+    
+    const ext = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
+    setText('gl-aniso', ext ? gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 'N/A');
+    
+    const range = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE);
+    setText('gl-point', range ? `[${range[0]}, ${range[1]}]` : 'N/A');
+
+    const extensions = gl.getSupportedExtensions();
+    setText('gl-ext', extensions.join(', '));
+
+    const fpStr = `${vendor}-${renderer}-${uVendor}-${uRenderer}-${extensions.length}-${gl.getParameter(gl.MAX_TEXTURE_SIZE)}`;
+    setText('fp-webgl', getFingerprintHash(fpStr));
+}
+
+/* 
+   ---------------------------------------------------
+   MODULE 4: AUDIO FINGERPRINTING
+   ---------------------------------------------------
+*/
+function scanAudio() {
+    try {
+        const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        if(!AC) { setText('fp-audio', 'N/A'); return; }
+
+        const ctx = new AC(1, 44100, 44100);
+        
+        setText('au-state', ctx.state);
+        setText('au-sample', 44100);
+        setText('au-channel', ctx.destination.maxChannelCount);
+
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.value = 10000;
+
+        const cmp = ctx.createDynamicsCompressor();
+        cmp.threshold.value = -50;
+        cmp.knee.value = 40;
+        cmp.ratio.value = 12;
+        cmp.reduction.value = -20;
+        cmp.attack.value = 0;
+        cmp.release.value = 0.25;
+
+        osc.connect(cmp);
+        cmp.connect(ctx.destination);
+        osc.start(0);
+
+        ctx.startRendering().then(buffer => {
+            const data = buffer.getChannelData(0);
+            let sum = 0.0;
+            for(let i=4500; i<5000; i++) {
+                sum += Math.abs(data[i]);
+            }
+            setText('fp-audio', getFingerprintHash(sum.toString()));
+            // Estimate Latency
+            setText('au-latency', ctx.baseLatency || 'Unknown'); 
+            setText('au-output', ctx.outputLatency || 'Unknown');
+        });
+
+    } catch(e) { console.log(e); }
+}
+
+/* 
+   ---------------------------------------------------
+   MODULE 5: CLIENT RECTS (DOM)
+   ---------------------------------------------------
+*/
+function scanRects() {
+    try {
+        const div = document.createElement('div');
+        div.style.width = '100px';
+        div.style.height = '100px';
+        div.style.position = 'absolute';
+        div.style.left = '-9999px';
+        div.style.transform = 'scale(1.333) rotate(1.5deg)';
+        document.body.appendChild(div);
+        
+        const r = div.getBoundingClientRect();
+        const data = `x:${r.x}, y:${r.y}, w:${r.width}, h:${r.height}, t:${r.top}, r:${r.right}`;
+        
+        setText('rects-data', data);
+        setText('fp-rects', getFingerprintHash(data));
+        document.body.removeChild(div);
+    } catch(e) {}
+}
+
+/* 
+   ---------------------------------------------------
+   MODULE 6: HARDWARE & OS
+   ---------------------------------------------------
+*/
+function scanHardware() {
+    const nav = navigator;
+    setText('hw-cores', nav.hardwareConcurrency || 'Unknown');
+    setText('hw-ram', nav.deviceMemory ? `~${nav.deviceMemory} GB` : 'Unknown');
+    setText('hw-platform', nav.platform);
+    
+    setText('hw-res', `${screen.width}x${screen.height}`);
+    setText('hw-avail', `${screen.availWidth}x${screen.availHeight}`);
+    setText('hw-depth', `${screen.colorDepth}-bit`);
+    
+    // Check for P3 Gamut
+    const p3 = window.matchMedia("(color-gamut: p3)").matches;
+    setText('hw-gamut', p3 ? 'Display-P3' : 'sRGB/Std');
+    
+    setText('hw-touch', nav.maxTouchPoints);
+    
+    if(nav.getBattery) {
+        nav.getBattery().then(b => {
+            setText('hw-batt', `Lvl:${b.level*100}%, Chg:${b.charging}`);
+        });
+    } else {
+        setText('hw-batt', 'Not Supported');
+    }
+}
+
+/* 
+   ---------------------------------------------------
+   MODULE 7: ENVIRONMENT & BOT DETECTION
+   ---------------------------------------------------
+*/
+function scanEnv() {
+    const nav = navigator;
+    setText('env-ua', nav.userAgent);
+    setText('env-app', nav.appName);
+    setText('env-prod', nav.productSub);
+    setText('env-vendor', nav.vendor);
+    setText('env-lang', nav.languages ? nav.languages.join(',') : nav.language);
+    setText('env-dnt', nav.doNotTrack);
+    setText('env-cook', nav.cookieEnabled);
+    
+    // Count properties in Navigator
+    let count = 0;
+    for(let i in nav) count++;
+    setText('env-props', `${count} Props`);
+
+    // Bot detection logic
+    let botScore = 0;
+    if(nav.webdriver) botScore += 10;
+    if(!nav.languages || nav.languages.length === 0) botScore += 5;
+    if(window.chrome && !window.chrome.runtime) { /* standard chrome */ } 
+    if(nav.userAgent.includes("Headless")) botScore += 10;
+    
+    if(botScore > 0) {
+         setHtml('env-bot', `<span style="color:red">DETECTED (Score:${botScore})</span>`);
+    } else {
+         setHtml('env-bot', '<span style="color:lime">False</span>');
+    }
+}
+
+/* 
+   ---------------------------------------------------
+   MODULE 8: FONTS & MEDIA
+   ---------------------------------------------------
+*/
+function enumerateMedia() {
+    if(!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        alert("Media Enumeration not supported.");
+        return;
+    }
+    
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+        let mics = 0, cams = 0, spks = 0;
+        let labels = [];
+        devices.forEach(d => {
+            if(d.kind === 'audioinput') mics++;
+            if(d.kind === 'videoinput') cams++;
+            if(d.kind === 'audiooutput') spks++;
+            if(d.label) labels.push(d.label);
+        });
+        
+        setText('med-mic', `${mics} Inputs`);
+        setText('med-cam', `${cams} Inputs`);
+        setText('med-spk', `${spks} Outputs`);
+        
+        if(labels.length === 0) {
+            alert("No labels detected. Permission likely denied/not persistent.");
+        } else {
+            alert("Detected Hardware:\n" + labels.join("\n"));
+        }
+    }).catch(err => alert("Auth Refused"));
+}
+
+function scanFonts() {
+    // List of common fonts to check
+    const fonts = ["Arial","Helvetica","Times New Roman","Courier New","Verdana","Georgia","Palatino","Garamond","Bookman","Comic Sans MS","Trebuchet MS","Arial Black","Impact","Tahoma","Geneva","Lucida Console","Monaco","Frank Ruhl Libre","Playfair Display","Roboto","Open Sans","Lato","Montserrat","Oswald","Raleway","Noto Sans","Source Sans Pro"];
+    
+    const baseFonts = ['monospace', 'sans-serif', 'serif'];
+    const testString = "mmmmmmmmmmlli";
+    const testSize = "72px";
+    const body = document.getElementsByTagName("body")[0];
+    
+    const s = document.createElement("span");
+    s.style.fontSize = testSize;
+    s.innerText = testString;
+    s.style.visibility = "hidden";
+    
+    const defaultWidths = {};
+    for (const index in baseFonts) {
+        s.style.fontFamily = baseFonts[index];
+        body.appendChild(s);
+        defaultWidths[baseFonts[index]] = s.offsetWidth;
+        body.removeChild(s);
+    }
+    
+    const detected = [];
+    for (const font of fonts) {
+        let matched = false;
+        for (const base of baseFonts) {
+            s.style.fontFamily = `'${font}', ${base}`;
+            body.appendChild(s);
+            if (s.offsetWidth !== defaultWidths[base]) {
+                matched = true;
+            }
+            body.removeChild(s);
+            if(matched) break;
+        }
+        if(matched) detected.push(font);
+    }
+    
+    setText('font-detect', detected.join(', ') || "None/Hidden");
+}
+
+// Global Init
+(function() {
+    setText('timestamp', new Date().toISOString());
+    scanNetwork();
+    scanCanvas();
+    scanWebGL();
+    scanAudio();
+    scanRects();
+    scanHardware();
+    scanEnv();
+    setTimeout(scanFonts, 500); // Delay for UI thread
+})();
+</script>
+
+</body>
+</html>
