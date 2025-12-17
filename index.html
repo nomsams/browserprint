@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL // SYSTEM FORENSICS</title>
+    <title>PANOPTICON // MAXIMUM ENTROPY</title>
     <style>
         :root {
-            --bg: #000000;
-            --panel: #0a0a0a;
-            --border: #333;
-            --accent: #00ff41;
-            --text: #ddd;
-            --dim: #666;
-            --alert: #ff3333;
-            --font: 'Courier New', Courier, monospace;
+            --bg: #0b0c10;
+            --panel: #1f2833;
+            --accent: #66fcf1;
+            --text: #c5c6c7;
+            --dim: #45a29e;
+            --err: #ff003c;
+            --warn: #ffcc00;
+            --ok: #00ff00;
+            --font: 'Menlo', 'Monaco', 'Consolas', monospace;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             background-color: var(--bg);
@@ -22,238 +25,300 @@
             font-family: var(--font);
             margin: 0;
             padding: 10px;
-            font-size: 13px;
+            font-size: 11px;
             overflow-x: hidden;
         }
 
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 10px; }
         ::-webkit-scrollbar-track { background: var(--bg); }
-        ::-webkit-scrollbar-thumb { background: var(--border); }
+        ::-webkit-scrollbar-thumb { background: var(--dim); border: 2px solid var(--bg); }
 
-        h1, h2, h3 { color: var(--accent); margin: 0; text-transform: uppercase; letter-spacing: 1px; }
-        h1 { border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 20px; font-size: 1.4rem; }
-        h2 { font-size: 1rem; margin-bottom: 10px; border-left: 3px solid var(--accent); padding-left: 8px; }
+        h1, h2, h3 { text-transform: uppercase; margin: 0; letter-spacing: 1px; }
+        h1 { font-size: 1.6rem; color: var(--accent); border-bottom: 2px solid var(--dim); padding-bottom: 10px; margin-bottom: 20px; text-shadow: 0 0 10px rgba(102, 252, 241, 0.3); }
+        h2 { font-size: 0.9rem; color: #fff; background: #000; padding: 5px; border-left: 3px solid var(--accent); margin-bottom: 5px; }
 
-        .grid-container {
+        .dashboard {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
             gap: 15px;
         }
 
         .panel {
             background: var(--panel);
-            border: 1px solid var(--border);
-            padding: 15px;
+            border: 1px solid #333;
+            padding: 10px;
             position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
         .panel::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 1px;
-            background: linear-gradient(90deg, transparent, var(--accent), transparent);
-            opacity: 0.2;
+            content: ""; position: absolute; top:0; left:0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, var(--accent), transparent); opacity: 0.5;
         }
 
-        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        td { padding: 4px 0; border-bottom: 1px solid #1a1a1a; vertical-align: top; }
-        tr:last-child td { border-bottom: none; }
-        
-        .key { color: var(--dim); width: 45%; }
-        .val { color: var(--accent); text-align: right; word-break: break-all; }
-        .val.warn { color: var(--alert); }
-        .val.neutral { color: #fff; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        td { padding: 3px 5px; border-bottom: 1px solid #2b3642; vertical-align: top; word-wrap: break-word;}
+        tr:hover { background: rgba(102, 252, 241, 0.05); }
 
-        .hash-box {
-            background: #000;
-            border: 1px dashed var(--dim);
-            color: var(--alert);
-            padding: 8px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 1.1em;
-            margin: 10px 0;
-            user-select: all;
-        }
+        .k { color: var(--dim); width: 35%; font-weight: bold; }
+        .v { color: var(--text); text-align: right; }
+        .v.hash { font-family: var(--font); color: var(--accent); }
+        .v.warn { color: var(--warn); }
+        .v.err { color: var(--err); }
 
-        .raw-data {
-            font-size: 10px;
-            color: var(--dim);
-            max-height: 100px;
+        .scroll-box {
+            max-height: 120px;
             overflow-y: auto;
-            background: #050505;
+            background: #111;
+            border: 1px solid #333;
             padding: 5px;
-            border: 1px solid #222;
-        }
-
-        .btn {
-            background: var(--border);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-            padding: 10px;
-            width: 100%;
-            cursor: pointer;
-            font-family: var(--font);
-            text-transform: uppercase;
-            font-weight: bold;
+            color: #888;
+            font-size: 10px;
+            white-space: pre-wrap;
             margin-top: 5px;
         }
-        .btn:hover { background: var(--accent); color: #000; }
 
-        /* Animation for scanning effect */
-        @keyframes scan {
-            0% { background-position: 0% 0%; }
-            100% { background-position: 100% 100%; }
+        .fingerprint-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #111; padding: 10px; margin-bottom: 10px; border: 1px dashed var(--dim);
         }
-        .scanning {
-            color: var(--accent);
-            animation: blink 1s infinite;
-        }
-        @keyframes blink { 50% { opacity: 0; } }
+        .fp-big { font-size: 1.5rem; color: var(--accent); font-weight: bold; }
 
+        /* Canvas Preview */
+        .preview-canvas { border: 1px solid #444; margin-top: 5px; height: 40px; }
+
+        /* Loading */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 9999;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .loader {
+            border: 4px solid #333; border-top: 4px solid var(--accent);
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* DOM Rect Hidden Element */
+        #dom-rect-target {
+            position: absolute; left: -9999px;
+            transform: skewX(10deg) rotate(5deg) scale(1.123);
+            font-size: 18px; font-family: 'Times New Roman';
+        }
+
+        button {
+            width: 100%; background: #000; color: var(--accent); border: 1px solid var(--accent);
+            padding: 8px; cursor: pointer; font-family: var(--font); font-weight: bold; text-transform: uppercase;
+            margin-top: 5px; transition: 0.2s;
+        }
+        button:hover { background: var(--accent); color: #000; }
     </style>
 </head>
 <body>
 
+<div id="loading-overlay">
+    <div class="loader"></div>
+    <div id="loading-text">INITIALIZING FORENSICS...</div>
+</div>
+
 <header>
-    <h1>System Forensics & Fingerprint Report_v9.0</h1>
-    <div style="display:flex; justify-content:space-between; color: var(--dim);">
-        <span id="timestamp">INITIALIZING...</span>
-        <span>SECURITY LEVEL: <span style="color:var(--alert)">ZERO</span></span>
+    <h1>PANOPTICON_V2 // SYSTEM ENTROPY REPORT</h1>
+    <div class="fingerprint-header">
+        <span>UNIQUE DEVICE IDENTIFIER (UDID):</span>
+        <span class="fp-big" id="master-fp">CALCULATING...</span>
     </div>
 </header>
 
-<div class="grid-container">
+<div class="dashboard">
 
-    <!-- 1. NETWORK INTELLIGENCE -->
+    <!-- 1. NETWORK -->
     <div class="panel">
-        <h2>[0x01] Network Intelligence</h2>
+        <h2>[0x01] NETWORK INTELLIGENCE</h2>
         <table>
-            <tr><td class="key">Public IP Address</td><td class="val" id="ip-public"><span class="scanning">SCANNING</span></td></tr>
-            <tr><td class="key">Hostname / Reverse DNS</td><td class="val" id="ip-host">-</td></tr>
-            <tr><td class="key">ISP / Organization</td><td class="val" id="ip-isp">-</td></tr>
-            <tr><td class="key">ASN</td><td class="val" id="ip-asn">-</td></tr>
-            <tr><td class="key">Geo Coordinates</td><td class="val" id="ip-geo">-</td></tr>
-            <tr><td class="key">Timezone (IP-based)</td><td class="val" id="ip-tz">-</td></tr>
-            <tr><td class="key">WebRTC Local IP</td><td class="val" id="rtc-local">Checking...</td></tr>
-            <tr><td class="key">WebRTC Candidate Type</td><td class="val" id="rtc-type">-</td></tr>
-            <tr><td class="key">Tor / Proxy Detected</td><td class="val" id="net-proxy">Analysis Pending</td></tr>
-        </table>
-        <div class="raw-data" id="net-headers">Detection relies on client-side JS & public IP APIs.</div>
-    </div>
-
-    <!-- 2. CANVAS & GRAPHICS -->
-    <div class="panel">
-        <h2>[0x02] Canvas Fingerprint</h2>
-        <div class="hash-box" id="fp-canvas">CALCULATING...</div>
-        <table>
-            <tr><td class="key">Winding Rule</td><td class="val">Non-Zero / Even-Odd</td></tr>
-            <tr><td class="key">Text Anti-aliasing</td><td class="val">Subpixel / Grayscale</td></tr>
-            <tr><td class="key">Emoji Support</td><td class="val">Unicode 13.0+</td></tr>
-            <tr><td class="key">MIME Support</td><td class="val" id="canvas-mime">image/png</td></tr>
-        </table>
-        <div style="border:1px solid #333; height:40px; overflow:hidden; opacity:0.7" id="canvas-dump"></div>
-    </div>
-
-    <!-- 3. WEBGL & GPU ARCHITECTURE -->
-    <div class="panel">
-        <h2>[0x03] WebGL & GPU Unit</h2>
-        <div class="hash-box" id="fp-webgl">CALCULATING...</div>
-        <table>
-            <tr><td class="key">GPU Vendor</td><td class="val" id="gl-vendor">-</td></tr>
-            <tr><td class="key">GPU Renderer</td><td class="val" id="gl-renderer">-</td></tr>
-            <tr><td class="key">Unmasked Vendor</td><td class="val warn" id="gl-unmasked-v">-</td></tr>
-            <tr><td class="key">Unmasked Renderer</td><td class="val warn" id="gl-unmasked-r">-</td></tr>
-            <tr><td class="key">Shading Language</td><td class="val" id="gl-shading">-</td></tr>
-            <tr><td class="key">Max Texture Size</td><td class="val" id="gl-texture">-</td></tr>
-            <tr><td class="key">Anisotropy</td><td class="val" id="gl-aniso">-</td></tr>
-            <tr><td class="key">Aliased Point Range</td><td class="val" id="gl-point">-</td></tr>
-        </table>
-        <div class="raw-data" id="gl-ext">Extensions: Scanning...</div>
-    </div>
-
-    <!-- 4. AUDIO STACK -->
-    <div class="panel">
-        <h2>[0x04] AudioContext Fingerprint</h2>
-        <div class="hash-box" id="fp-audio">CALCULATING...</div>
-        <table>
-            <tr><td class="key">Base Latency</td><td class="val" id="au-latency">-</td></tr>
-            <tr><td class="key">Output Latency</td><td class="val" id="au-output">-</td></tr>
-            <tr><td class="key">Sample Rate</td><td class="val" id="au-sample">-</td></tr>
-            <tr><td class="key">State</td><td class="val" id="au-state">-</td></tr>
-            <tr><td class="key">Max Channels</td><td class="val" id="au-channel">-</td></tr>
-            <tr><td class="key">Dynamics Compressor</td><td class="val">Supported</td></tr>
+            <tr><td class="k">Public IPv4</td><td class="v" id="net-ip">Scanning...</td></tr>
+            <tr><td class="k">ISP / Org</td><td class="v" id="net-isp">-</td></tr>
+            <tr><td class="k">Location</td><td class="v" id="net-loc">-</td></tr>
+            <tr><td class="k">WebRTC Local IP</td><td class="v" id="rtc-ip">Detecting...</td></tr>
+            <tr><td class="k">WebRTC Protocol</td><td class="v" id="rtc-proto">-</td></tr>
+            <tr><td class="k">DNS Leak Hint</td><td class="v" id="net-dns">-</td></tr>
+            <tr><td class="k">Tor Signature</td><td class="v" id="net-tor">Checking...</td></tr>
         </table>
     </div>
 
-    <!-- 5. CLIENT RECTS & DOM -->
+    <!-- 2. NAVIGATOR & BOT -->
     <div class="panel">
-        <h2>[0x05] ClientRects Fingerprint</h2>
-        <div class="hash-box" id="fp-rects">CALCULATING...</div>
-        <p style="font-size:10px; color:var(--dim)">
-            Measures sub-pixel render differences of HTML elements after CSS transformations. Highly specific to OS/Font rendering engines.
-        </p>
-        <div class="raw-data" id="rects-data"></div>
-    </div>
-
-    <!-- 6. HARDWARE & CONCURRENCY -->
-    <div class="panel">
-        <h2>[0x06] Hardware Profiling</h2>
+        <h2>[0x02] NAVIGATOR & BOT DETECTION</h2>
         <table>
-            <tr><td class="key">CPU Cores (Logical)</td><td class="val" id="hw-cores">-</td></tr>
-            <tr><td class="key">Device Memory (RAM)</td><td class="val" id="hw-ram">-</td></tr>
-            <tr><td class="key">Platform / OS</td><td class="val" id="hw-platform">-</td></tr>
-            <tr><td class="key">Screen Resolution</td><td class="val" id="hw-res">-</td></tr>
-            <tr><td class="key">Available Screen</td><td class="val" id="hw-avail">-</td></tr>
-            <tr><td class="key">Color Depth</td><td class="val" id="hw-depth">-</td></tr>
-            <tr><td class="key">Color Gamut (P3)</td><td class="val" id="hw-gamut">-</td></tr>
-            <tr><td class="key">Touch Points</td><td class="val" id="hw-touch">-</td></tr>
-            <tr><td class="key">Battery API</td><td class="val" id="hw-batt">-</td></tr>
+            <tr><td class="k">User Agent</td><td class="v" id="nav-ua" style="font-size:9px"></td></tr>
+            <tr><td class="k">Platform / OS</td><td class="v" id="nav-os"></td></tr>
+            <tr><td class="k">Hardware Concurrency</td><td class="v" id="nav-cores"></td></tr>
+            <tr><td class="k">Device Memory</td><td class="v" id="nav-ram"></td></tr>
+            <tr><td class="k">Browser Vendor</td><td class="v" id="nav-ven"></td></tr>
+            <tr><td class="k">Product Sub</td><td class="v" id="nav-prod"></td></tr>
+            <tr><td class="k">Automation (WebDriver)</td><td class="v" id="bot-web"></td></tr>
+            <tr><td class="k">Headless UA</td><td class="v" id="bot-head"></td></tr>
+            <tr><td class="k">Proto Tampering</td><td class="v" id="bot-proto"></td></tr>
         </table>
     </div>
 
-    <!-- 7. BROWSER ENVIRONMENT -->
+    <!-- 3. CANVAS FINGERPRINT -->
     <div class="panel">
-        <h2>[0x07] Browser Environment</h2>
+        <h2>[0x03] CANVAS FINGERPRINT (2D)</h2>
+        <div class="fingerprint-header" style="padding:5px;">
+            <span>HASH:</span> <span class="v hash" id="fp-canvas">...</span>
+        </div>
         <table>
-            <tr><td class="key">User Agent</td><td class="val raw-data" style="max-height:40px" id="env-ua">-</td></tr>
-            <tr><td class="key">App Name</td><td class="val" id="env-app">-</td></tr>
-            <tr><td class="key">Product Sub</td><td class="val" id="env-prod">-</td></tr>
-            <tr><td class="key">Vendor</td><td class="val" id="env-vendor">-</td></tr>
-            <tr><td class="key">Navigator Properties</td><td class="val" id="env-props">-</td></tr>
-            <tr><td class="key">Languages</td><td class="val" id="env-lang">-</td></tr>
-            <tr><td class="key">Do Not Track</td><td class="val" id="env-dnt">-</td></tr>
-            <tr><td class="key">Cookies Enabled</td><td class="val" id="env-cook">-</td></tr>
-            <tr><td class="key">Headless / Bot</td><td class="val" id="env-bot">Checking...</td></tr>
+            <tr><td class="k">Winding Rule</td><td class="v">Even-Odd/Non-Zero</td></tr>
+            <tr><td class="k">Text Rendering</td><td class="v">Subpixel/Anti-alias</td></tr>
+            <tr><td class="k">Emoji Support</td><td class="v">Color Glyphs</td></tr>
+            <tr><td class="k">Blend Modes</td><td class="v">Multiply/Exclusion</td></tr>
+        </table>
+        <div id="canvas-div" style="overflow:hidden; height:40px; border:1px solid #333; margin-top:5px;"></div>
+    </div>
+
+    <!-- 4. WEBGL FINGERPRINT -->
+    <div class="panel">
+        <h2>[0x04] WEBGL FINGERPRINT (3D)</h2>
+        <div class="fingerprint-header" style="padding:5px;">
+            <span>HASH:</span> <span class="v hash" id="fp-webgl">...</span>
+        </div>
+        <table>
+            <tr><td class="k">GPU Vendor</td><td class="v" id="gl-ven"></td></tr>
+            <tr><td class="k">GPU Renderer</td><td class="v" id="gl-ren"></td></tr>
+            <tr><td class="k">Unmasked Vendor</td><td class="v warn" id="gl-uven"></td></tr>
+            <tr><td class="k">Unmasked Renderer</td><td class="v warn" id="gl-uren"></td></tr>
+            <tr><td class="k">Extensions</td><td class="v" id="gl-ext"></td></tr>
+            <tr><td class="k">Shader Precision</td><td class="v" id="gl-prec"></td></tr>
         </table>
     </div>
 
-    <!-- 8. MEDIA DEVICES -->
+    <!-- 5. AUDIO & VOICES -->
     <div class="panel">
-        <h2>[0x08] Media Devices & Fonts</h2>
+        <h2>[0x05] AUDIO & SPEECH SYNTHESIS</h2>
+        <div class="fingerprint-header" style="padding:5px;">
+            <span>HASH:</span> <span class="v hash" id="fp-audio">...</span>
+        </div>
         <table>
-            <tr><td class="key">Microphones</td><td class="val" id="med-mic">Pending Auth</td></tr>
-            <tr><td class="key">Cameras</td><td class="val" id="med-cam">Pending Auth</td></tr>
-            <tr><td class="key">Speakers</td><td class="val" id="med-spk">Pending Auth</td></tr>
+            <tr><td class="k">Sample Rate</td><td class="v" id="au-rate"></td></tr>
+            <tr><td class="k">Max Channels</td><td class="v" id="au-chan"></td></tr>
+            <tr><td class="k">Oscillator Dynamics</td><td class="v" id="au-dyn"></td></tr>
+            <tr><td class="k">Base Latency</td><td class="v" id="au-lat"></td></tr>
         </table>
-        <button class="btn" onclick="enumerateMedia()">Enumerate Devices (Auth Req)</button>
-        <hr style="border:0; border-top:1px solid var(--border); margin:10px 0;">
-        <div class="raw-data" id="font-detect">Scanning Installed Fonts...</div>
+        <div class="scroll-box" id="voice-list">Loading Voices (Async)...</div>
     </div>
-    
+
+    <!-- 6. DOM RECT & MATH -->
+    <div class="panel">
+        <h2>[0x06] DOM RECT & MATH (SUB-PIXEL)</h2>
+        <div class="fingerprint-header" style="padding:5px;">
+            <span>HASH:</span> <span class="v hash" id="fp-math">...</span>
+        </div>
+        <table>
+            <tr><td class="k">Math.sin() Noise</td><td class="v" id="math-sin"></td></tr>
+            <tr><td class="k">Math.tan() Noise</td><td class="v" id="math-tan"></td></tr>
+            <tr><td class="k">DOMRect X/Y</td><td class="v" id="dom-xy"></td></tr>
+            <tr><td class="k">DOMRect W/H</td><td class="v" id="dom-wh"></td></tr>
+        </table>
+        <div style="font-size:9px; color:#555; margin-top:5px;">
+            Differs by CPU architecture (x86 vs ARM) and browser rounding logic.
+        </div>
+    </div>
+
+    <!-- 7. FONTS -->
+    <div class="panel">
+        <h2>[0x07] INSTALLED FONTS (ENUMERATION)</h2>
+        <div class="fingerprint-header" style="padding:5px;">
+            <span>HASH:</span> <span class="v hash" id="fp-fonts">...</span>
+        </div>
+        <div class="scroll-box" id="font-list" style="height:150px;">Scanning 150+ Fonts...</div>
+    </div>
+
+    <!-- 8. SCREEN & MEDIA QUERIES -->
+    <div class="panel">
+        <h2>[0x08] SCREEN & CSS MEDIA</h2>
+        <table>
+            <tr><td class="k">Resolution</td><td class="v" id="scr-res"></td></tr>
+            <tr><td class="k">Available</td><td class="v" id="scr-avl"></td></tr>
+            <tr><td class="k">Color/Pixel Depth</td><td class="v" id="scr-depth"></td></tr>
+            <tr><td class="k">Device Pixel Ratio</td><td class="v" id="scr-dpr"></td></tr>
+            <tr><td class="k">Dark Mode</td><td class="v" id="css-dark"></td></tr>
+            <tr><td class="k">Reduced Motion</td><td class="v" id="css-red"></td></tr>
+            <tr><td class="k">Gamut (P3)</td><td class="v" id="css-gam"></td></tr>
+            <tr><td class="k">Pointer Accuracy</td><td class="v" id="css-pnt"></td></tr>
+            <tr><td class="k">Monochrome</td><td class="v" id="css-mono"></td></tr>
+        </table>
+    </div>
+
+    <!-- 9. WORKER SCOPE -->
+    <div class="panel">
+        <h2>[0x09] WORKER SCOPE (SANDBOX CHECK)</h2>
+        <div class="fingerprint-header" style="padding:5px;">
+            <span>HASH:</span> <span class="v hash" id="fp-worker">...</span>
+        </div>
+        <div style="font-size:10px; color:#aaa;">
+            Compares GPU rendering inside a Web Worker vs Main Thread. Discrepancies indicate emulation.
+        </div>
+        <table>
+            <tr><td class="k">Worker User Agent</td><td class="v" id="wrk-ua"></td></tr>
+            <tr><td class="k">Worker Timezone</td><td class="v" id="wrk-tz"></td></tr>
+            <tr><td class="k">Worker Language</td><td class="v" id="wrk-lang"></td></tr>
+        </table>
+    </div>
+
+    <!-- 10. MEDIA DEVICES & CODECS -->
+    <div class="panel">
+        <h2>[0x0A] MEDIA DEVICES & CODECS</h2>
+        <table>
+            <tr><td class="k">Microphones</td><td class="v" id="med-mic">Auth Req</td></tr>
+            <tr><td class="k">Webcams</td><td class="v" id="med-cam">Auth Req</td></tr>
+            <tr><td class="k">Speakers</td><td class="v" id="med-spk">Auth Req</td></tr>
+        </table>
+        <div class="scroll-box" id="codec-list">Checking Codecs...</div>
+        <button onclick="requestMedia()">Request Device Enumeration</button>
+    </div>
+
+    <!-- 11. STORAGE & PERMISSIONS -->
+    <div class="panel">
+        <h2>[0x0B] STORAGE & PERMISSIONS</h2>
+        <table>
+            <tr><td class="k">LocalStorage</td><td class="v" id="st-loc"></td></tr>
+            <tr><td class="k">SessionStorage</td><td class="v" id="st-sess"></td></tr>
+            <tr><td class="k">IndexedDB</td><td class="v" id="st-idb"></td></tr>
+            <tr><td class="k">SharedWorker</td><td class="v" id="st-sw"></td></tr>
+            <tr><td class="k">ServiceWorker</td><td class="v" id="st-ser"></td></tr>
+        </table>
+        <div class="scroll-box" id="perm-list">Querying Permissions...</div>
+    </div>
+
+    <!-- 12. ADVANCED HARDWARE -->
+    <div class="panel">
+        <h2>[0x0C] ADVANCED HARDWARE</h2>
+        <table>
+            <tr><td class="k">Battery API</td><td class="v" id="hw-bat"></td></tr>
+            <tr><td class="k">Bluetooth API</td><td class="v" id="hw-bt"></td></tr>
+            <tr><td class="k">Gamepad API</td><td class="v" id="hw-gp"></td></tr>
+            <tr><td class="k">WebXR (VR)</td><td class="v" id="hw-vr"></td></tr>
+            <tr><td class="k">Touch Points</td><td class="v" id="hw-tch"></td></tr>
+            <tr><td class="k">USB API</td><td class="v" id="hw-usb"></td></tr>
+        </table>
+    </div>
 </div>
 
-<script>
-/* 
-   ---------------------------------------------------
-   CORE HASHING & UTILITIES
-   ---------------------------------------------------
-*/
-const getId = (id) => document.getElementById(id);
-const setText = (id, txt) => { const el = getId(id); if(el) el.innerText = txt; };
-const setHtml = (id, html) => { const el = getId(id); if(el) el.innerHTML = html; };
+<div id="dom-rect-target">Fingerprint</div>
 
-// MurmurHash3 (32-bit) implementation for generating unique IDs
+<script>
+/**
+ * ============================================================================
+ * PANOPTICON CORE - UTILITIES
+ * ============================================================================
+ */
+const $ = id => document.getElementById(id);
+const txt = (id, t) => { const e = $(id); if(e) e.innerText = t; };
+const html = (id, h) => { const e = $(id); if(e) e.innerHTML = h; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Robust 32-bit Hash (Murmur3 variant)
 function xmur3(str) {
     for(var i = 0, h = 1779033703 ^ str.length; i < str.length; i++) {
         h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
@@ -264,10 +329,9 @@ function xmur3(str) {
         return (h ^= h >>> 16) >>> 0;
     }
 }
-
-function getFingerprintHash(str) {
+function getHash(str) {
+    if(!str) return "00000000";
     let hash = 0;
-    if (str.length === 0) return "00000000";
     for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
@@ -276,357 +340,383 @@ function getFingerprintHash(str) {
     return (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
 }
 
-/* 
-   ---------------------------------------------------
-   MODULE 1: NETWORK & WEBRTC
-   ---------------------------------------------------
-*/
+/**
+ * ============================================================================
+ * MODULE 1: NETWORK & HEADERS
+ * ============================================================================
+ */
 async function scanNetwork() {
-    // 1. External IP via public API
     try {
-        const req = await fetch('https://ipapi.co/json/');
-        const data = await req.json();
-        setText('ip-public', data.ip);
-        setText('ip-host', data.hostname || "N/A");
-        setText('ip-isp', data.org || data.isp);
-        setText('ip-asn', data.asn);
-        setText('ip-geo', `${data.latitude}, ${data.longitude} (${data.city}, ${data.country_code})`);
-        setText('ip-tz', data.timezone);
+        const r = await fetch('https://ipapi.co/json/');
+        const d = await r.json();
+        txt('net-ip', d.ip);
+        txt('net-isp', d.org + " / " + d.asn);
+        txt('net-loc', `${d.city}, ${d.region}, ${d.country_code}`);
         
-        // Simple proxy detection heuristic
-        if(data.org.toLowerCase().includes("vpn") || data.org.toLowerCase().includes("hosting")) {
-            setHtml('net-proxy', '<span style="color:red">HIGH PROBABILITY</span>');
+        // Timezone vs IP Check
+        const sysTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if(d.timezone !== sysTz) {
+            html('net-tor', '<span class="warn">MISMATCH (Possible Proxy)</span>');
         } else {
-            setHtml('net-proxy', '<span style="color:lime">Low Probability</span>');
+            txt('net-tor', 'Consistent');
         }
-    } catch(e) {
-        setText('ip-public', 'ADBLOCK/BLOCKED');
-    }
+    } catch(e) { txt('net-ip', 'Blocked / ADBLOCK'); }
 
-    // 2. WebRTC Leak Test
-    const pc = new RTCPeerConnection({iceServers: [{urls: "stun:stun.l.google.com:19302"}]});
-    pc.createDataChannel("");
-    pc.createOffer().then(sdp => pc.setLocalDescription(sdp));
-    pc.onicecandidate = (ice) => {
-        if(ice && ice.candidate && ice.candidate.candidate) {
-            const line = ice.candidate.candidate;
-            const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/;
-            const match = line.match(ipRegex);
-            
-            setText('rtc-type', ice.candidate.type);
-            
-            if(match) {
-                if(line.includes('.local') || line.includes('mdns')) {
-                     setHtml('rtc-local', '<span style="color:orange">Obfuscated (mDNS)</span>');
-                } else if (match[1].length > 6) {
-                     setHtml('rtc-local', `<span style="color:red">${match[1]} (LEAKED)</span>`);
+    // WebRTC
+    try {
+        const pc = new RTCPeerConnection({iceServers: [{urls: "stun:stun.l.google.com:19302"}]});
+        pc.createDataChannel("");
+        pc.createOffer().then(sdp => pc.setLocalDescription(sdp));
+        pc.onicecandidate = (e) => {
+            if(e && e.candidate) {
+                const c = e.candidate.candidate;
+                txt('rtc-proto', e.candidate.protocol);
+                if(c.includes('.local') || c.includes('mdns')) html('rtc-ip', '<span class="warn">mDNS (Obfuscated)</span>');
+                else {
+                    const ip = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(c);
+                    if(ip) html('rtc-ip', `<span class="err">${ip[1]} (LEAKED)</span>`);
                 }
             }
-        }
-    };
+        };
+    } catch(e) { txt('rtc-ip', 'Disabled'); }
 }
 
-/* 
-   ---------------------------------------------------
-   MODULE 2: CANVAS FINGERPRINTING
-   ---------------------------------------------------
-*/
-function scanCanvas() {
+/**
+ * ============================================================================
+ * MODULE 2: NAVIGATOR & BOT
+ * ============================================================================
+ */
+function scanNavigator() {
+    const n = navigator;
+    txt('nav-ua', n.userAgent);
+    txt('nav-os', n.platform);
+    txt('nav-cores', n.hardwareConcurrency || '?');
+    txt('nav-ram', n.deviceMemory ? `~${n.deviceMemory}GB` : '?');
+    txt('nav-ven', n.vendor);
+    txt('nav-prod', n.productSub);
+
+    // Bot Checks
+    const isHeadless = /HeadlessChrome|PhantomJS|Fyde/.test(n.userAgent);
+    txt('bot-head', isHeadless ? 'YES' : 'No');
+    txt('bot-web', n.webdriver ? 'YES (Flagged)' : 'No');
+
+    // Proto Check
     try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 240; 
-        canvas.height = 60;
-        
-        // Geometry
-        ctx.textBaseline = "alphabetic";
-        ctx.fillStyle = "#f60";
-        ctx.fillRect(125, 1, 62, 20);
-        
-        // Text/Font Rendering
-        ctx.fillStyle = "#069";
-        ctx.font = "11pt no-real-font-123"; // Fallback font
-        ctx.fillText("Cwm fjordbank glyphs vext quiz", 2, 15);
-        ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
-        ctx.font = "18pt Arial";
-        ctx.fillText("😃", 4, 45); // Emoji
-        
-        // Blending
-        ctx.globalCompositeOperation = "multiply";
-        ctx.fillStyle = "rgb(255,0,255)";
-        ctx.beginPath(); ctx.arc(50, 50, 50, 0, Math.PI*2, true); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = "rgb(0,255,255)";
-        ctx.beginPath(); ctx.arc(100, 50, 50, 0, Math.PI*2, true); ctx.closePath(); ctx.fill();
-
-        const b64 = canvas.toDataURL();
-        const hash = getFingerprintHash(b64);
-        
-        setText('fp-canvas', hash);
-        
-        // Visual confirmation
-        canvas.style.width = "100%";
-        getId('canvas-dump').appendChild(canvas);
-        
-    } catch(e) { setText('fp-canvas', 'ERROR'); }
+        if (Object.getPrototypeOf(navigator) !== Navigator.prototype) {
+             html('bot-proto', '<span class="err">TAMPERED</span>');
+        } else {
+             txt('bot-proto', 'Clean');
+        }
+    } catch(e) { txt('bot-proto', 'Error'); }
 }
 
-/* 
-   ---------------------------------------------------
-   MODULE 3: WEBGL FINGERPRINTING
-   ---------------------------------------------------
-*/
+/**
+ * ============================================================================
+ * MODULE 3: CANVAS (COMPLEX)
+ * ============================================================================
+ */
+function scanCanvas() {
+    const c = document.createElement('canvas');
+    const ctx = c.getContext('2d');
+    c.width = 250; c.height = 60;
+    
+    // Geometry & Winding
+    ctx.beginPath();
+    ctx.arc(50, 50, 50, 0, Math.PI*2, true);
+    ctx.arc(50, 50, 25, 0, Math.PI*2, true);
+    ctx.fillStyle = '#ff00ff';
+    ctx.fill('evenodd');
+
+    // Text & Emoji
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#00ffff';
+    ctx.fillText('Panopticon 🧠', 80, 30);
+    
+    // Blending
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = '#ffff00';
+    ctx.fillRect(20,20,100,20);
+
+    const b64 = c.toDataURL();
+    txt('fp-canvas', getHash(b64));
+    
+    c.style.width = '100%';
+    c.style.height = '100%';
+    $('canvas-div').appendChild(c);
+    return b64;
+}
+
+/**
+ * ============================================================================
+ * MODULE 4: WEBGL
+ * ============================================================================
+ */
 function scanWebGL() {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if(!gl) { setText('fp-webgl', 'NOT SUPPORTED'); return; }
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+    if(!gl) { txt('fp-webgl', 'N/A'); return; }
 
     const dbg = gl.getExtension('WEBGL_debug_renderer_info');
-    const vendor = gl.getParameter(gl.VENDOR);
-    const renderer = gl.getParameter(gl.RENDERER);
-    const uVendor = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : 'Masked';
-    const uRenderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : 'Masked';
-
-    setText('gl-vendor', vendor);
-    setText('gl-renderer', renderer);
-    setText('gl-unmasked-v', uVendor);
-    setText('gl-unmasked-r', uRenderer);
-    setText('gl-shading', gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
-    setText('gl-texture', gl.getParameter(gl.MAX_TEXTURE_SIZE));
+    const v = gl.getParameter(gl.VENDOR);
+    const r = gl.getParameter(gl.RENDERER);
+    const uv = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : '-';
+    const ur = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '-';
     
-    const ext = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
-    setText('gl-aniso', ext ? gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 'N/A');
+    txt('gl-ven', v); txt('gl-ren', r);
+    txt('gl-uven', uv); txt('gl-uren', ur);
     
-    const range = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE);
-    setText('gl-point', range ? `[${range[0]}, ${range[1]}]` : 'N/A');
+    const exts = gl.getSupportedExtensions();
+    txt('gl-ext', exts.length + " supported");
 
-    const extensions = gl.getSupportedExtensions();
-    setText('gl-ext', extensions.join(', '));
+    const prec = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.HIGH_FLOAT);
+    txt('gl-prec', prec ? `${prec.rangeMin}/${prec.rangeMax} (${prec.precision})` : 'N/A');
 
-    const fpStr = `${vendor}-${renderer}-${uVendor}-${uRenderer}-${extensions.length}-${gl.getParameter(gl.MAX_TEXTURE_SIZE)}`;
-    setText('fp-webgl', getFingerprintHash(fpStr));
+    txt('fp-webgl', getHash(v+r+uv+ur+exts.join()));
 }
 
-/* 
-   ---------------------------------------------------
-   MODULE 4: AUDIO FINGERPRINTING
-   ---------------------------------------------------
-*/
+/**
+ * ============================================================================
+ * MODULE 5: AUDIO & SPEECH
+ * ============================================================================
+ */
 function scanAudio() {
-    try {
-        const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-        if(!AC) { setText('fp-audio', 'N/A'); return; }
-
+    const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if(AC) {
         const ctx = new AC(1, 44100, 44100);
+        txt('au-rate', '44100 (Sim)');
+        txt('au-chan', ctx.destination.maxChannelCount);
         
-        setText('au-state', ctx.state);
-        setText('au-sample', 44100);
-        setText('au-channel', ctx.destination.maxChannelCount);
-
         const osc = ctx.createOscillator();
         osc.type = 'triangle';
         osc.frequency.value = 10000;
-
         const cmp = ctx.createDynamicsCompressor();
-        cmp.threshold.value = -50;
-        cmp.knee.value = 40;
-        cmp.ratio.value = 12;
-        cmp.reduction.value = -20;
-        cmp.attack.value = 0;
-        cmp.release.value = 0.25;
-
+        
         osc.connect(cmp);
         cmp.connect(ctx.destination);
         osc.start(0);
 
-        ctx.startRendering().then(buffer => {
-            const data = buffer.getChannelData(0);
-            let sum = 0.0;
-            for(let i=4500; i<5000; i++) {
-                sum += Math.abs(data[i]);
-            }
-            setText('fp-audio', getFingerprintHash(sum.toString()));
-            // Estimate Latency
-            setText('au-latency', ctx.baseLatency || 'Unknown'); 
-            setText('au-output', ctx.outputLatency || 'Unknown');
+        ctx.startRendering().then(b => {
+            let sum = 0;
+            const d = b.getChannelData(0);
+            for(let i=0; i<d.length; i++) sum += Math.abs(d[i]);
+            txt('au-dyn', sum.toFixed(5));
+            txt('fp-audio', getHash(sum.toString()));
         });
+    }
 
-    } catch(e) { console.log(e); }
+    // Speech Voices (Async)
+    if(window.speechSynthesis) {
+        let voices = window.speechSynthesis.getVoices();
+        const loadVoices = () => {
+            voices = window.speechSynthesis.getVoices();
+            if(voices.length > 0) {
+                txt('voice-list', voices.map(v => `${v.name} (${v.lang})`).join('\n'));
+            } else {
+                txt('voice-list', "None Detected (or blocked)");
+            }
+        };
+        if(voices.length === 0) window.speechSynthesis.onvoiceschanged = loadVoices;
+        else loadVoices();
+    }
 }
 
-/* 
-   ---------------------------------------------------
-   MODULE 5: CLIENT RECTS (DOM)
-   ---------------------------------------------------
-*/
-function scanRects() {
-    try {
-        const div = document.createElement('div');
-        div.style.width = '100px';
-        div.style.height = '100px';
-        div.style.position = 'absolute';
-        div.style.left = '-9999px';
-        div.style.transform = 'scale(1.333) rotate(1.5deg)';
-        document.body.appendChild(div);
-        
-        const r = div.getBoundingClientRect();
-        const data = `x:${r.x}, y:${r.y}, w:${r.width}, h:${r.height}, t:${r.top}, r:${r.right}`;
-        
-        setText('rects-data', data);
-        setText('fp-rects', getFingerprintHash(data));
-        document.body.removeChild(div);
-    } catch(e) {}
+/**
+ * ============================================================================
+ * MODULE 6: DOM RECT & MATH
+ * ============================================================================
+ */
+function scanMathAndRect() {
+    // DOM Rect
+    const el = $('dom-rect-target');
+    const r = el.getBoundingClientRect();
+    txt('dom-xy', `${r.x.toFixed(8)}, ${r.y.toFixed(8)}`);
+    txt('dom-wh', `${r.width.toFixed(8)}, ${r.height.toFixed(8)}`);
+    
+    // Math
+    const s = Math.sin(1e20) + Math.cos(1e20) + Math.tan(1e20);
+    const m = Math.PI * 100000000;
+    txt('math-sin', s.toFixed(15));
+    txt('math-tan', m.toFixed(15));
+
+    const entropy = `${r.x}${r.y}${r.width}${s}${m}`;
+    txt('fp-math', getHash(entropy));
+    return entropy;
 }
 
-/* 
-   ---------------------------------------------------
-   MODULE 6: HARDWARE & OS
-   ---------------------------------------------------
-*/
+/**
+ * ============================================================================
+ * MODULE 7: FONTS
+ * ============================================================================
+ */
+async function scanFonts() {
+    const fonts = [
+        "Arial","Arial Black","Bahnschrift","Calibri","Cambria","Cambria Math","Candara","Comic Sans MS","Consolas","Constantia","Corbel","Courier","Courier New","Ebrima","Franklin Gothic Medium","Gabriola","Gadugi","Georgia","HoloLens MDL2 Assets","Impact","Ink Free","Javanese Text","Leelawadee UI","Lucida Console","Lucida Sans Unicode","Malgun Gothic","Marlett","Microsoft Himalaya","Microsoft JhengHei","Microsoft New Tai Lue","Microsoft PhagsPa","Microsoft Sans Serif","Microsoft Tai Le","Microsoft YaHei","Microsoft Yi Baiti","MingLiU-ExtB","Mongolian Baiti","MS Gothic","MV Boli","Myanmar Text","Nirmala UI","Palatino Linotype","Segoe MDL2 Assets","Segoe Print","Segoe Script","Segoe UI","Segoe UI Historic","Segoe UI Symbol","SimSun","Sitka","Sylfaen","Symbol","Tahoma","Times","Times New Roman","Trebuchet MS","Verdana","Webdings","Wingdings","Yu Gothic",
+        "American Typewriter","Andale Mono","Apple Chancery","Arial Narrow","Ayuthaya","Baskerville","Big Caslon","Brush Script MT","Chalkboard","Chalkduster","Charter","Cochin","Copperplate","Didot","Futura","Geneva","Gill Sans","Helvetica","Helvetica Neue","Herculanum","Hoefler Text","Keyboard","Lucida Grande","Luminari","Marker Felt","Menlo","Monaco","Noteworthy","Optima","Osaka","Papyrus","Phosphate","PingFang HK","PlantinMT","Savoye LET","SignPainter","Skia","Snell Roundhand","Times New Roman","Trattatello","Zapfino"
+    ];
+
+    const baseFonts = ["monospace", "sans-serif", "serif"];
+    const span = document.createElement("span");
+    span.style.fontSize = "72px";
+    span.innerHTML = "mmmmmmmmlli";
+    span.style.visibility = "hidden";
+    document.body.appendChild(span);
+
+    const dims = {};
+    for(let b of baseFonts) {
+        span.style.fontFamily = b;
+        dims[b] = span.offsetWidth;
+    }
+
+    let detected = [];
+    
+    // Chunk processing to avoid freezing UI
+    for(let i=0; i<fonts.length; i++) {
+        const f = fonts[i];
+        let match = false;
+        for(let b of baseFonts) {
+            span.style.fontFamily = `'${f}', ${b}`;
+            if(span.offsetWidth !== dims[b]) {
+                match = true;
+                break;
+            }
+        }
+        if(match) detected.push(f);
+        if(i % 10 === 0) await sleep(5);
+    }
+    
+    document.body.removeChild(span);
+    txt('font-list', detected.join('\n'));
+    txt('fp-fonts', getHash(detected.join(',')));
+}
+
+/**
+ * ============================================================================
+ * MODULE 9: WORKER SCOPE (SANDBOX)
+ * ============================================================================
+ */
+function scanWorker() {
+    const blob = new Blob([`
+        onmessage = function(e) {
+            const date = new Date();
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            postMessage({
+                ua: navigator.userAgent,
+                lang: navigator.language,
+                tz: tz
+            });
+        }
+    `], { type: "text/javascript" });
+
+    const url = URL.createObjectURL(blob);
+    const w = new Worker(url);
+    w.onmessage = function(e) {
+        const d = e.data;
+        txt('wrk-ua', d.ua);
+        txt('wrk-lang', d.lang);
+        txt('wrk-tz', d.tz);
+        
+        const combined = d.ua + d.lang + d.tz;
+        txt('fp-worker', getHash(combined));
+        URL.revokeObjectURL(url);
+    };
+    w.postMessage("init");
+}
+
+/**
+ * ============================================================================
+ * MODULE 10-12: HARDWARE & CODECS
+ * ============================================================================
+ */
+function scanCodecs() {
+    const v = document.createElement('video');
+    const types = [
+        'video/mp4; codecs="avc1.42E01E"', 'video/webm; codecs="vp8, vorbis"', 
+        'video/webm; codecs="vp9"', 'audio/mpeg', 'audio/wav', 'audio/aac'
+    ];
+    let res = "";
+    types.forEach(t => res += `${t}: ${v.canPlayType(t)}\n`);
+    txt('codec-list', res);
+}
+
 function scanHardware() {
-    const nav = navigator;
-    setText('hw-cores', nav.hardwareConcurrency || 'Unknown');
-    setText('hw-ram', nav.deviceMemory ? `~${nav.deviceMemory} GB` : 'Unknown');
-    setText('hw-platform', nav.platform);
-    
-    setText('hw-res', `${screen.width}x${screen.height}`);
-    setText('hw-avail', `${screen.availWidth}x${screen.availHeight}`);
-    setText('hw-depth', `${screen.colorDepth}-bit`);
-    
-    // Check for P3 Gamut
-    const p3 = window.matchMedia("(color-gamut: p3)").matches;
-    setText('hw-gamut', p3 ? 'Display-P3' : 'sRGB/Std');
-    
-    setText('hw-touch', nav.maxTouchPoints);
-    
-    if(nav.getBattery) {
-        nav.getBattery().then(b => {
-            setText('hw-batt', `Lvl:${b.level*100}%, Chg:${b.charging}`);
+    const n = navigator;
+    txt('hw-bat', n.getBattery ? 'Supported' : 'No');
+    txt('hw-bt', n.bluetooth ? 'Supported' : 'No');
+    txt('hw-gp', n.getGamepads ? 'Supported' : 'No');
+    txt('hw-vr', n.xr ? 'Supported' : 'No');
+    txt('hw-tch', n.maxTouchPoints);
+    txt('hw-usb', n.usb ? 'Supported' : 'No');
+}
+
+function scanPermissions() {
+    if(navigator.permissions) {
+        const p = ['camera','microphone','geolocation','notifications'];
+        Promise.all(p.map(n => navigator.permissions.query({name:n}).then(r=>`${n}:${r.state}`).catch(e=>`${n}:-`)))
+        .then(r => txt('perm-list', r.join('\n')));
+    }
+}
+
+function requestMedia() {
+    navigator.mediaDevices.enumerateDevices().then(ds => {
+        let mic=0, cam=0, spk=0;
+        ds.forEach(d => {
+            if(d.kind==='audioinput') mic++;
+            if(d.kind==='videoinput') cam++;
+            if(d.kind==='audiooutput') spk++;
         });
-    } else {
-        setText('hw-batt', 'Not Supported');
-    }
+        txt('med-mic', mic); txt('med-cam', cam); txt('med-spk', spk);
+    }).catch(e => alert("Permission Denied"));
 }
 
-/* 
-   ---------------------------------------------------
-   MODULE 7: ENVIRONMENT & BOT DETECTION
-   ---------------------------------------------------
-*/
-function scanEnv() {
-    const nav = navigator;
-    setText('env-ua', nav.userAgent);
-    setText('env-app', nav.appName);
-    setText('env-prod', nav.productSub);
-    setText('env-vendor', nav.vendor);
-    setText('env-lang', nav.languages ? nav.languages.join(',') : nav.language);
-    setText('env-dnt', nav.doNotTrack);
-    setText('env-cook', nav.cookieEnabled);
+/**
+ * ============================================================================
+ * INIT SEQUENCE
+ * ============================================================================
+ */
+(async function init() {
+    txt('css-dark', window.matchMedia('(prefers-color-scheme: dark)').matches);
+    txt('css-red', window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    txt('css-gam', window.matchMedia('(color-gamut: p3)').matches);
+    txt('css-pnt', window.matchMedia('(pointer: fine)').matches ? 'Fine' : 'Coarse');
     
-    // Count properties in Navigator
-    let count = 0;
-    for(let i in nav) count++;
-    setText('env-props', `${count} Props`);
+    txt('scr-res', `${screen.width}x${screen.height}`);
+    txt('scr-avl', `${screen.availWidth}x${screen.availHeight}`);
+    txt('scr-depth', screen.colorDepth);
+    txt('scr-dpr', window.devicePixelRatio);
+    
+    // Storage
+    txt('st-loc', window.localStorage ? 'Yes':'No');
+    txt('st-sess', window.sessionStorage ? 'Yes':'No');
+    txt('st-idb', window.indexedDB ? 'Yes':'No');
+    txt('st-sw', window.SharedWorker ? 'Yes':'No');
+    txt('st-ser', navigator.serviceWorker ? 'Yes':'No');
 
-    // Bot detection logic
-    let botScore = 0;
-    if(nav.webdriver) botScore += 10;
-    if(!nav.languages || nav.languages.length === 0) botScore += 5;
-    if(window.chrome && !window.chrome.runtime) { /* standard chrome */ } 
-    if(nav.userAgent.includes("Headless")) botScore += 10;
-    
-    if(botScore > 0) {
-         setHtml('env-bot', `<span style="color:red">DETECTED (Score:${botScore})</span>`);
-    } else {
-         setHtml('env-bot', '<span style="color:lime">False</span>');
-    }
-}
-
-/* 
-   ---------------------------------------------------
-   MODULE 8: FONTS & MEDIA
-   ---------------------------------------------------
-*/
-function enumerateMedia() {
-    if(!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        alert("Media Enumeration not supported.");
-        return;
-    }
-    
-    navigator.mediaDevices.enumerateDevices().then(devices => {
-        let mics = 0, cams = 0, spks = 0;
-        let labels = [];
-        devices.forEach(d => {
-            if(d.kind === 'audioinput') mics++;
-            if(d.kind === 'videoinput') cams++;
-            if(d.kind === 'audiooutput') spks++;
-            if(d.label) labels.push(d.label);
-        });
-        
-        setText('med-mic', `${mics} Inputs`);
-        setText('med-cam', `${cams} Inputs`);
-        setText('med-spk', `${spks} Outputs`);
-        
-        if(labels.length === 0) {
-            alert("No labels detected. Permission likely denied/not persistent.");
-        } else {
-            alert("Detected Hardware:\n" + labels.join("\n"));
-        }
-    }).catch(err => alert("Auth Refused"));
-}
-
-function scanFonts() {
-    // List of common fonts to check
-    const fonts = ["Arial","Helvetica","Times New Roman","Courier New","Verdana","Georgia","Palatino","Garamond","Bookman","Comic Sans MS","Trebuchet MS","Arial Black","Impact","Tahoma","Geneva","Lucida Console","Monaco","Frank Ruhl Libre","Playfair Display","Roboto","Open Sans","Lato","Montserrat","Oswald","Raleway","Noto Sans","Source Sans Pro"];
-    
-    const baseFonts = ['monospace', 'sans-serif', 'serif'];
-    const testString = "mmmmmmmmmmlli";
-    const testSize = "72px";
-    const body = document.getElementsByTagName("body")[0];
-    
-    const s = document.createElement("span");
-    s.style.fontSize = testSize;
-    s.innerText = testString;
-    s.style.visibility = "hidden";
-    
-    const defaultWidths = {};
-    for (const index in baseFonts) {
-        s.style.fontFamily = baseFonts[index];
-        body.appendChild(s);
-        defaultWidths[baseFonts[index]] = s.offsetWidth;
-        body.removeChild(s);
-    }
-    
-    const detected = [];
-    for (const font of fonts) {
-        let matched = false;
-        for (const base of baseFonts) {
-            s.style.fontFamily = `'${font}', ${base}`;
-            body.appendChild(s);
-            if (s.offsetWidth !== defaultWidths[base]) {
-                matched = true;
-            }
-            body.removeChild(s);
-            if(matched) break;
-        }
-        if(matched) detected.push(font);
-    }
-    
-    setText('font-detect', detected.join(', ') || "None/Hidden");
-}
-
-// Global Init
-(function() {
-    setText('timestamp', new Date().toISOString());
+    scanNavigator();
     scanNetwork();
     scanCanvas();
     scanWebGL();
     scanAudio();
-    scanRects();
+    scanMathAndRect();
+    scanWorker();
+    scanCodecs();
     scanHardware();
-    scanEnv();
-    setTimeout(scanFonts, 500); // Delay for UI thread
+    scanPermissions();
+    
+    await scanFonts();
+
+    // Calculate Master Hash
+    setTimeout(() => {
+        const c = $('fp-canvas').innerText;
+        const w = $('fp-webgl').innerText;
+        const a = $('fp-audio').innerText;
+        const f = $('fp-fonts').innerText;
+        const m = $('fp-math').innerText;
+        const master = getHash(c + w + a + f + m);
+        txt('master-fp', master);
+        $('loading-overlay').style.display = 'none';
+    }, 1500);
+
 })();
 </script>
-
 </body>
 </html>
