@@ -1,0 +1,7 @@
+{
+  "name": "browserprint",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test", "start": "node scripts/serve.js", "test:browser": "node scripts/browser-smoke.js" },
+  "engines": { "node": ">=20" }
+}
